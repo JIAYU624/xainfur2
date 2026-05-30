@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>冼夫人足迹 - 唯用一好心</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome (用于模拟手绘图标) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: 严格使用极其干净的宋体，对标视频文学气质 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'paper': '#fcfbf9',       // 极其干净的极灰白纸张色
+                        'ink-blue': '#4b6a88',    // 严格对标视频的靛蓝色/水彩蓝
+                        'ink-dark': '#2c4257',    // 略深的标题蓝
+                        'ink-light': '#8da5bb',   // 浅蓝（用于小字/英文）
+                    },
+                    fontFamily: {
+                        'serif': ['"Noto Serif SC"', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* 全局样式 - 纸张质感与字体 */
+        body { 
+            margin: 0; 
+            padding: 0; 
+            background-color: #fcfbf9; 
+            font-family: 'Noto Serif SC', serif; 
+            color: #4b6a88;
+            overflow-x: hidden;
+            /* 极其微弱的纸张噪点，还原真实画纸 */
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+        }
+
+        /* 视图切换机制 */
+        .page-view {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.8s ease-in-out;
+            width: 100%;
+        }
+        .page-view.active {
+            display: block;
+            opacity: 1;
+        }
+
+        /* 竖排文字工具类 */
+        .vertical-text {
+            writing-mode: vertical-rl;
+            letter-spacing: 0.3em;
+        }
+
+        /* 交互悬停：细蓝线底边 */
+        .ink-hover {
+            position: relative;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        .ink-hover::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 1px;
+            background-color: #4b6a88;
+            transition: width 0.3s ease;
+        }
+        .ink-hover:hover::after { width: 100%; }
+
+        /* --- 核心：单色水墨图滤镜 --- 
+           强制将任何彩色图片转为视频中的靛蓝水彩质感 */
+        .watercolor-img {
+            filter: grayscale(100%) sepia(100%) hue-rotate(185deg) saturate(150%) contrast(0.9) brightness(1.05);
+            mix-blend-mode: multiply; /* 让图片白色部分透明，融入底色 */
+            width: 100%;
+            height: auto;
+            border-radius: 2px;
+        }
+
+        /* 不规则边缘模拟水彩画作的毛边 */
+        .rough-edge {
+            border-radius: 2% 3% 2% 4% / 1% 2% 3% 2%;
+        }
+
+        /* 滚动淡入动画类 */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 1.2s cubic-bezier(0.25, 0.8, 0.25, 1), transform 1.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .fade-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 漂浮动画（用于主页倒影和目录图标） */
+        .float-slow { animation: float 6s ease-in-out infinite; }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* 主页倒影专属遮罩 */
+        .water-reflection {
+            transform: scaleY(-1);
+            opacity: 0.15;
+            filter: blur(2px);
+            mask-image: linear-gradient(to bottom, transparent 20%, black 100%);
+            -webkit-mask-image: linear-gradient(to bottom, transparent 20%, black 100%);
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-ink-blue selection:text-white">
+
+    <!-- 严格对标视频：固定在右上方的侧边导航 -->
+    <nav class="fixed right-8 top-1/3 -translate-y-1/3 z-50 flex flex-col gap-10 text-ink-blue text-[15px]">
+        <div class="vertical-text ink-hover flex flex-col items-center gap-2 opacity-80 hover:opacity-100" onclick="navigateTo('home')">
+            <span class="text-[10px] font-sans uppercase tracking-widest text-ink-light">Guide</span>
+            <span>导览</span>
+        </div>
+        <div class="vertical-text ink-hover flex flex-col items-center gap-2 opacity-80 hover:opacity-100" onclick="navigateTo('menu')">
+            <span class="text-[10px] font-sans uppercase tracking-widest text-ink-light">Contents</span>
+            <span>目录</span>
+        </div>
+        <div class="vertical-text ink-hover flex flex-col items-center gap-2 opacity-80 hover:opacity-100" onclick="navigateTo('more')">
+            <span class="text-[10px] font-sans uppercase tracking-widest text-ink-light">More</span>
+            <span>更多</span>
+        </div>
+    </nav>
+
+    <!-- ==================== 1. 首页 (Home) ==================== -->
+    <section id="view-home" class="page-view active relative min-h-screen flex flex-col justify-center items-center">
+        
+        <!-- 顶部的题记 -->
+        <div class="absolute top-16 text-center text-ink-blue opacity-80">
+            <p class="tracking-[0.5em] text-sm mb-1">献给历史</p>
+            <p class="font-sans text-[10px] uppercase tracking-widest text-ink-light">Dedicated to History</p>
+        </div>
+
+        <!-- 中间的抽象人物水墨剪影与倒影 -->
+        <div class="relative flex flex-col items-center mt-12 cursor-pointer" onclick="navigateTo('menu')">
+            <!-- 佩剑人物剪影 -->
+            <svg class="w-24 h-40 text-ink-blue float-slow" viewBox="0 0 100 150" fill="currentColor">
+                <circle cx="50" cy="15" r="7" />
+                <path d="M47,22 C47,15 53,15 53,22 Z" />
+                <path d="M42,30 C32,45 25,85 20,130 L80,130 C75,85 68,45 58,30 Z" />
+                <!-- 剑 -->
+                <rect x="49" y="40" width="2" height="100" />
+            </svg>
+            
+            <!-- 水面线 -->
+            <div class="w-48 h-[1px] bg-ink-blue opacity-40 mt-1 mb-1"></div>
+            <div class="w-32 h-[1px] bg-ink-blue opacity-20 mb-2"></div>
+            
+            <!-- 倒影 -->
+            <svg class="w-24 h-40 text-ink-blue water-reflection" viewBox="0 0 100 150" fill="currentColor">
+                <circle cx="50" cy="15" r="7" />
+                <path d="M47,22 C47,15 53,15 53,22 Z" />
+                <path d="M42,30 C32,45 25,85 20,130 L80,130 C75,85 68,45 58,30 Z" />
+                <rect x="49" y="40" width="2" height="100" />
+            </svg>
+        </div>
+
+        <!-- 左侧竖排大标题 -->
+        <div class="absolute left-[15%] top-1/2 -translate-y-1/2">
+            <h1 class="vertical-text text-5xl md:text-6xl font-serif text-ink-dark leading-tight">冼夫人<br>足迹</h1>
+            <div class="mt-12 opacity-80">
+                <p class="text-sm tracking-[0.2em] mb-1">岭南正史 著</p>
+                <p class="font-sans text-[9px] text-ink-light uppercase tracking-widest">Written by:<br>History</p>
+            </div>
+        </div>
+
+        <!-- 右侧开始按钮 -->
+        <div class="absolute right-[25%] top-1/2 -translate-y-1/2 text-center ink-hover opacity-80" onclick="navigateTo('menu')">
+            <p class="vertical-text text-2xl font-serif text-ink-dark mb-4">开始阅读</p>
+            <p class="font-sans text-[10px] text-ink-light uppercase tracking-widest vertical-text" style="letter-spacing: 0.1em;">Start Reading</p>
+        </div>
+    </section>
+
+    <!-- ==================== 2. 目录页 (Contents/Map) ==================== -->
+    <section id="view-menu" class="page-view relative min-h-screen pt-24 pb-20 px-8">
+        <div class="max-w-4xl mx-auto text-center mb-24">
+            <p class="text-[14px] text-ink-light leading-[2.5] mb-8 px-4 md:px-24 text-justify md:text-center">
+                公元六世纪的岭南，部族林立，山海交错。<br>
+                在这里，一位俚族少女以过人的胆识与智慧，跨越了梁、陈、隋三个朝代。<br>
+                她的一生，不仅是平息叛乱的征战史，更是推动汉俚融合、教化百越的安邦史。
+            </p>
+            <h2 class="text-2xl font-serif text-ink-dark mb-2 tracking-[0.2em]">请选择你想探索的历史坐标</h2>
+            <p class="font-sans text-[10px] text-ink-light uppercase tracking-[0.2em]">Please choose the coordinates of history</p>
+            <div class="mt-12 text-ink-light opacity-50">
+                <i class="fas fa-arrow-down animate-bounce"></i>
+            </div>
+        </div>
+
+        <!-- 散落的手绘风图标 -->
+        <div class="max-w-5xl mx-auto relative h-[40vh]">
+            
+            <!-- 茂名/高凉 -->
+            <div class="absolute top-[10%] left-[15%] md:left-[20%] flex flex-col items-center cursor-pointer ink-hover float-slow" style="animation-delay: 0s;" onclick="startChapter('gaoliang')">
+                <i class="fas fa-mountain text-4xl text-ink-blue mb-3 opacity-80"></i>
+                <span class="text-sm font-serif text-ink-dark tracking-widest">高凉故里</span>
+                <span class="text-[10px] text-ink-light mt-1">公元522年</span>
+            </div>
+
+            <!-- 广州 -->
+            <div class="absolute top-[40%] left-[50%] -translate-x-1/2 flex flex-col items-center cursor-pointer ink-hover float-slow" style="animation-delay: 1.5s;" onclick="startChapter('guangzhou')">
+                <i class="fas fa-torii-gate text-5xl text-ink-blue mb-3 opacity-80"></i>
+                <span class="text-sm font-serif text-ink-dark tracking-widest">番禺城郭</span>
+                <span class="text-[10px] text-ink-light mt-1">平息兵燹</span>
+            </div>
+
+            <!-- 崖州/海南 -->
+            <div class="absolute bottom-[10%] right-[15%] md:right-[25%] flex flex-col items-center cursor-pointer ink-hover float-slow" style="animation-delay: 0.8s;" onclick="startChapter('yazhou')">
+                <i class="fas fa-sailboat text-4xl text-ink-blue mb-3 opacity-80"></i>
+                <span class="text-sm font-serif text-ink-dark tracking-widest">崖州海疆</span>
+                <span class="text-[10px] text-ink-light mt-1">渡海安民</span>
+            </div>
+
+        </div>
+
+        <!-- 底部隐约的城市/山脉线 -->
+        <div class="fixed bottom-0 left-0 w-full opacity-5 pointer-events-none flex items-end justify-center overflow-hidden h-32">
+            <svg viewBox="0 0 1000 100" class="w-full h-full text-ink-blue" preserveAspectRatio="none" fill="currentColor">
+                <path d="M0,100 L0,80 Q50,50 100,70 T200,60 T300,80 T400,40 T500,70 T600,50 T700,80 T800,30 T900,60 T1000,80 L1000,100 Z" />
+            </svg>
+        </div>
+    </section>
+
+    <!-- ==================== 3. 叙事章节页 (Scrollytelling 长卷阅读) ==================== -->
+    <section id="view-chapter" class="page-view bg-paper relative">
+        
+        <!-- 章节封面 -->
+        <div class="min-h-screen flex flex-col items-center justify-center text-center relative z-10 px-6">
+            <div class="mb-8 opacity-80 text-ink-blue text-5xl">
+                <i class="fas fa-landmark"></i>
+            </div>
+            <h1 class="text-3xl font-serif text-ink-dark mb-4 tracking-widest">岭南巾帼史</h1>
+            <p class="text-sm text-ink-light tracking-[0.3em] uppercase">进入她的历史视角</p>
+            <div class="mt-32 text-ink-light opacity-50">
+                <p class="text-[10px] tracking-widest mb-2">向下滑动探寻</p>
+                <div class="w-[1px] h-12 bg-ink-light mx-auto"></div>
+            </div>
+        </div>
+
+        <!-- 沉浸式图文排版 (图与文交错留白，增加内容厚度) -->
+        <div class="max-w-4xl mx-auto px-6 pb-32">
+            
+            <!-- 【一】 少女与联姻 -->
+            <div class="min-h-[50vh] flex items-center justify-center fade-up observer-item">
+                <div class="text-center max-w-lg">
+                    <p class="text-[12px] text-ink-light font-sans mb-6 tracking-[0.2em] border-b border-ink-light/20 pb-2 inline-block">一 · 汉俚融合</p>
+                    <p class="text-[17px] leading-[2.2] text-ink-dark text-justify">
+                        她出身百越俚族首领世家，自幼聪慧，多谋略。<br>
+                        当时的岭南，部族林立，互相攻伐。她没有选择用刀剑征服，而是用大义劝导兄长冼挺，平息了深重的怨隙。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 图片：山林/部落意象 -->
+            <div class="my-24 fade-up observer-item w-full md:w-3/4 mx-auto">
+                <img src="https://images.unsplash.com/photo-1542052125323-e69ad37a47c2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" 
+                     class="watercolor-img rough-edge shadow-sm" alt="古代城郭意象">
+                <p class="text-right text-[10px] text-ink-light mt-2 italic">古高凉风貌意象</p>
+            </div>
+
+            <div class="min-h-[40vh] flex items-center justify-start fade-up observer-item">
+                <div class="max-w-md">
+                    <p class="text-[17px] leading-[2.2] text-ink-dark text-justify">
+                        为了真正的长治久安，她打破族裔壁垒，与汉人高凉太守冯宝联姻。<br><br>
+                        她脱下了部族的战袍，穿上了推行教化的素衣。她协助丈夫推行中原先进农耕与法治，即便本族首领犯罪也绝不偏袒。自此，政令有序，偏远的越族部落走向文明。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 【二】 识破叛乱 -->
+            <div class="my-40 flex flex-col md:flex-row items-center gap-16 fade-up observer-item">
+                <div class="w-full md:w-1/2">
+                    <p class="text-[12px] text-ink-light font-sans mb-6 tracking-[0.2em] border-b border-ink-light/20 pb-2 inline-block">二 · 勘平兵燹</p>
+                    <h3 class="text-2xl font-serif text-ink-dark mb-6 tracking-widest">“刺史无理，不可轻信。”</h3>
+                    <p class="text-[17px] leading-[2.2] text-ink-dark text-justify">
+                        梁朝末年，侯景之乱波及岭南。高州刺史李迁仕意图谋反，急召冯宝。<br>
+                        冼夫人敏锐地识破了阴谋，阻止丈夫前往。她甚至亲自挑着干柴挑子，假装送礼劳军，趁乱突袭，一举击溃了叛军，解救了水深火热的广州城。
+                    </p>
+                </div>
+                <div class="w-full md:w-1/2">
+                    <!-- 战火/军队意象 -->
+                    <img src="https://images.unsplash.com/photo-1599839619722-39751411ea63?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
+                         class="watercolor-img rough-edge" alt="古代兵燹意象">
+                </div>
+            </div>
+
+            <!-- 【三】 舍子保境 -->
+            <div class="min-h-[50vh] flex flex-col items-center justify-center text-center fade-up observer-item">
+                <p class="text-[12px] text-ink-light font-sans mb-6 tracking-[0.2em] border-b border-ink-light/20 pb-2 inline-block">三 · 大义灭亲</p>
+                <p class="text-xl font-serif text-ink-dark leading-[2.5] mb-8 max-w-lg text-justify">
+                    陈朝时，广州刺史欧阳纥叛乱，将冼夫人的儿子冯仆扣为人质，逼她同反。<br><br>
+                    面对骨肉至亲的安危，她却对使者说：<br>
+                    <span class="font-bold">“我为忠臣，岂可顾私？”</span>
+                </p>
+                <p class="text-[16px] leading-[2.2] text-ink-dark text-justify max-w-lg mt-4">
+                    她毅然发兵拒守边境，配合朝廷大军平叛。这种不以贼子而轻误国事的胸襟，不仅保住了岭南的安定，更赢得了历代帝王的敬重。
+                </p>
+            </div>
+
+            <!-- 【四】 归顺隋朝 -->
+            <div class="my-40 flex flex-col md:flex-row-reverse items-center gap-16 fade-up observer-item">
+                <div class="w-full md:w-1/2 pl-0 md:pl-8">
+                    <p class="text-[12px] text-ink-light font-sans mb-6 tracking-[0.2em] border-b border-ink-light/20 pb-2 inline-block">四 · 痛哭降旗</p>
+                    <p class="text-[17px] leading-[2.2] text-ink-dark text-justify">
+                        陈朝灭亡，天下大乱，岭南数郡共奉她为主，号“圣母”。<br><br>
+                        面对割据称王的诱惑，当隋朝使臣带来陈后主的信物时，她痛哭流涕，祭奠故主后，毅然降下陈旗。岭南全境兵不血刃，悄然融入大隋版图。
+                    </p>
+                </div>
+                <div class="w-full md:w-1/2">
+                    <!-- 旗帜/古建筑意象 -->
+                    <img src="https://images.unsplash.com/photo-1549884501-c88c7f758db2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
+                         class="watercolor-img rough-edge" alt="城头意象">
+                </div>
+            </div>
+
+            <!-- 【五】 巡抚崖州 -->
+            <div class="my-32 fade-up observer-item w-full mx-auto">
+                <img src="https://images.unsplash.com/photo-1558237583-0972b21cfbc3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80" 
+                     class="watercolor-img rough-edge shadow-sm" alt="大海与帆船意象">
+                <div class="mt-12 max-w-2xl mx-auto text-center">
+                    <p class="text-[12px] text-ink-light font-sans mb-6 tracking-[0.2em] border-b border-ink-light/20 pb-2 inline-block">五 · 渡海安民</p>
+                    <p class="text-[17px] leading-[2.2] text-ink-dark text-justify">
+                        晚年的冼夫人，目光越过了琼州海峡。<br>
+                        自汉代以来，海南岛曾脱离中央管辖长达六百余年。她上书朝廷请置崖州，恢复了王朝对海岛的直接统辖。她乘船渡海，巡视各峒，惩治贪墨，传授技艺，将文明的种子播撒在海岛深处。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 结语 (居中强调) -->
+            <div class="min-h-[50vh] flex flex-col items-center justify-center text-center fade-up observer-item mt-24">
+                <p class="text-3xl font-serif text-ink-dark leading-[2.5] mb-8">
+                    “我事三代主，唯用一好心。”
+                </p>
+                <p class="text-[15px] text-ink-dark tracking-[0.1em] max-w-md leading-relaxed text-justify">
+                    在撕裂与愈合的抉择中，她永远选择后者。<br>
+                    像默默缝合疆域的丝线，不负朝廷，亦不负苍生。
+                </p>
+            </div>
+
+            <!-- 底部结束导向 -->
+            <div class="pt-24 border-t border-ink-light/20 text-center fade-up observer-item">
+                <button class="text-ink-dark text-[15px] font-serif tracking-widest ink-hover" onclick="navigateTo('more')">
+                    浏览她留给后世的千秋传承 <i class="fas fa-arrow-right ml-2 text-xs opacity-70"></i>
+                </button>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ==================== 4. 更多与留言 (More) ==================== -->
+    <section id="view-more" class="page-view bg-paper pt-24 pb-32 relative">
+        <div class="max-w-4xl mx-auto px-8 text-center">
+            
+            <h2 class="text-2xl font-serif text-ink-dark mb-24 tracking-[0.3em]">
+                千古流芳……
+            </h2>
+
+            <!-- 视频风数据可视化排版 (扩充数据维度) -->
+            <div class="space-y-24 mb-32 text-left">
+                
+                <!-- 数据块 1：三朝 -->
+                <div class="flex flex-col md:flex-row items-start gap-12 fade-up observer-item">
+                    <div class="w-full md:w-1/3 text-center md:text-right">
+                        <h3 class="text-[12px] text-ink-light uppercase tracking-[0.2em] mb-2">她的时代</h3>
+                        <p class="text-4xl font-serif text-ink-dark">历经三朝</p>
+                    </div>
+                    <div class="w-full md:w-2/3 border-l border-ink-light/30 pl-8 pt-2">
+                        <p class="text-[15px] leading-[2.2] text-ink-dark text-justify">
+                            跨越 <span class="font-bold">梁、陈、隋</span> 三代的动荡岁月。她始终掌握着岭南的主导权，却从未自立为王，始终致力于维护国家大一统。生前被隋文帝册封为“谯国夫人”。
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- 数据块 2：崖州 -->
+                <div class="flex flex-col md:flex-row items-start gap-12 fade-up observer-item">
+                    <div class="w-full md:w-1/3 text-center md:text-right">
+                        <h3 class="text-[12px] text-ink-light uppercase tracking-[0.2em] mb-2">她的海疆</h3>
+                        <p class="text-4xl font-serif text-ink-dark">收复崖州</p>
+                    </div>
+                    <div class="w-full md:w-2/3 border-l border-ink-light/30 pl-8 pt-2">
+                        <p class="text-[15px] leading-[2.2] text-ink-dark text-justify">
+                            脱离中央管辖长达600多年的孤岛，在她的安抚下重新并入中华版图。周恩来总理曾评价她为<span class="italic">“中国巾帼英雄第一人”</span>。
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 数据块 3：信仰 -->
+                <div class="flex flex-col md:flex-row items-start gap-12 fade-up observer-item">
+                    <div class="w-full md:w-1/3 text-center md:text-right">
+                        <h3 class="text-[12px] text-ink-light uppercase tracking-[0.2em] mb-2">她的身后</h3>
+                        <p class="text-4xl font-serif text-ink-dark">2500+庙宇</p>
+                    </div>
+                    <div class="w-full md:w-2/3 border-l border-ink-light/30 pl-8 pt-2">
+                        <p class="text-[15px] leading-[2.2] text-ink-dark text-justify">
+                            千年之后，全球各地建有超过两千五百座“冼太庙”。她的信仰随着海上丝绸之路，远播东南亚，成为凝聚海内外华人的重要精神纽带。
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 视频尾声：留言交互区 -->
+            <div class="mt-32 pt-24 border-t border-ink-light/20 fade-up observer-item">
+                <h2 class="text-xl font-serif text-ink-dark mb-6 tracking-widest">留下你的历史感悟</h2>
+                <p class="text-ink-light mb-12 text-[13px] leading-[2] tracking-wide">
+                    时光流转一千五百年，唯有“好心”精神长存。<br>
+                    如果你也被这份跨越千年的大义触动，请写下你的感悟。
+                </p>
+
+                <div class="max-w-md mx-auto text-left relative">
+                    <div id="comment-form">
+                        <textarea id="storyInput" rows="3" class="w-full bg-transparent border-b-2 border-ink-blue/30 p-2 mb-8 focus:outline-none focus:border-ink-blue text-ink-dark resize-none font-serif text-[15px] leading-[2]" placeholder="我事三代主，唯用一好心..."></textarea>
+                        
+                        <div class="text-center">
+                            <button onclick="submitStory()" class="text-ink-dark text-lg font-serif tracking-widest ink-hover">
+                                发布感言
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 提交成功提示 -->
+                    <div id="success-message" class="hidden flex-col items-center justify-center py-4">
+                        <p class="text-lg font-serif text-ink-dark mb-2 tracking-widest">已记录</p>
+                        <p class="text-[12px] text-ink-light tracking-widest">你的感悟已汇入历史长卷</p>
+                    </div>
+                </div>
+
+                <!-- 模拟视频中散落的弹幕/历史留言 -->
+                <div class="mt-32 space-y-16 opacity-60 pointer-events-none text-center relative h-48">
+                    <p class="absolute top-0 left-0 text-[14px] text-ink-dark font-serif italic text-justify w-64">“为了家国太平，甘愿一生征战，这就是真正的英雄。”</p>
+                    <p class="absolute top-12 right-0 text-[14px] text-ink-dark font-serif italic text-justify w-56">“现在去海南，还能看到祭祀她的古老庙宇。”</p>
+                    <p class="absolute bottom-0 left-1/4 text-[14px] text-ink-dark font-serif italic text-justify w-64">“‘唯用一好心’，短短五个字，却是最高深的政治智慧。”</p>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <script>
+        // --- 路由与视图切换逻辑 ---
+        function navigateTo(viewId) {
+            document.querySelectorAll('.page-view').forEach(el => {
+                el.classList.remove('active');
+            });
+            window.scrollTo(0, 0); // 切换时置顶
+            const target = document.getElementById('view-' + viewId);
+            if (target) {
+                target.classList.add('active');
+            }
+            // 重新触发滚动动画检测
+            setTimeout(checkVisibility, 100);
+        }
+
+        function startChapter(chapterId) {
+            navigateTo('chapter');
+        }
+
+        // --- 简单的滚动淡入监听 (还原视频中的平滑出现) ---
+        function checkVisibility() {
+            const elements = document.querySelectorAll('.observer-item');
+            elements.forEach(el => {
+                const rect = el.getBoundingClientRect();
+                // 当元素进入视口底部之上 100px 时触发
+                if (rect.top < window.innerHeight - 50) {
+                    el.classList.add('visible');
+                }
+            });
+        }
+
+        // 监听滚动事件
+        window.addEventListener('scroll', checkVisibility);
+        // 初始化检测
+        window.addEventListener('load', checkVisibility);
+
+        // --- 简单的交互逻辑 ---
+        function submitStory() {
+            const input = document.getElementById('storyInput');
+            if (input.value.trim() === '') {
+                alert('请先写下内容。');
+                return;
+            }
+            
+            document.getElementById('comment-form').style.display = 'none';
+            document.getElementById('success-message').classList.remove('hidden');
+            document.getElementById('success-message').classList.add('flex');
+            
+            // 模拟 3 秒后重置
+            setTimeout(() => {
+                document.getElementById('success-message').classList.add('hidden');
+                document.getElementById('success-message').classList.remove('flex');
+                document.getElementById('comment-form').style.display = 'block';
+                input.value = ''; 
+            }, 3000);
+        }
+
+        // 默认进入首页
+        window.onload = () => {
+            navigateTo('home');
+        };
+    </script>
+</body>
+</html>
