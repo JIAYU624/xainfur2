@@ -7,9 +7,9 @@
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome (用于模拟手绘图标) -->
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts: 严格使用极其干净的宋体，对标视频文学气质 -->
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600&display=swap" rel="stylesheet">
 
     <script>
@@ -17,10 +17,11 @@
             theme: {
                 extend: {
                     colors: {
-                        'paper': '#fcfbf9',       // 极其干净的极灰白纸张色
-                        'ink-blue': '#4b6a88',    // 严格对标视频的靛蓝色/水彩蓝
-                        'ink-dark': '#2c4257',    // 略深的标题蓝
-                        'ink-light': '#8da5bb',   // 浅蓝（用于小字/英文）
+                        'paper': '#fcfbf9',       // 纸张色
+                        'paper-dark': '#f5f3f0',  // 画布底色
+                        'ink-blue': '#4b6a88',    // 靛蓝色
+                        'ink-dark': '#2c4257',    // 标题蓝
+                        'ink-light': '#8da5bb',   // 浅蓝
                     },
                     fontFamily: {
                         'serif': ['"Noto Serif SC"', 'serif'],
@@ -39,11 +40,10 @@
             font-family: 'Noto Serif SC', serif; 
             color: #4b6a88;
             overflow-x: hidden;
-            /* 极其微弱的纸张噪点，还原真实画纸 */
+            /* 极其微弱的纸张噪点 */
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
         }
 
-        /* 视图切换机制 */
         .page-view {
             display: none;
             opacity: 0;
@@ -55,13 +55,11 @@
             opacity: 1;
         }
 
-        /* 竖排文字工具类 */
         .vertical-text {
             writing-mode: vertical-rl;
             letter-spacing: 0.3em;
         }
 
-        /* 交互悬停：细蓝线底边 */
         .ink-hover {
             position: relative;
             cursor: pointer;
@@ -80,22 +78,24 @@
         }
         .ink-hover:hover::after { width: 100%; }
 
-        /* --- 核心：单色水墨图滤镜 --- 
-           强制将任何彩色图片转为视频中的靛蓝水彩质感 */
-        .watercolor-img {
-            filter: grayscale(100%) sepia(100%) hue-rotate(185deg) saturate(150%) contrast(0.9) brightness(1.05);
-            mix-blend-mode: multiply; /* 让图片白色部分透明，融入底色 */
-            width: 100%;
-            height: auto;
-            border-radius: 2px;
-        }
-
-        /* 不规则边缘模拟水彩画作的毛边 */
-        .rough-edge {
+        /* --- SVG 插画块样式 --- */
+        .svg-block {
+            background-color: #f5f3f0;
+            border-radius: 4px;
+            box-shadow: 0 8px 24px rgba(44, 66, 87, 0.04);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15%;
+            /* 不规则边缘模拟画纸毛边 */
             border-radius: 2% 3% 2% 4% / 1% 2% 3% 2%;
         }
+        .svg-block svg {
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* 防止干扰拖拽 */
+        }
 
-        /* 滚动淡入动画类 */
         .fade-up {
             opacity: 0;
             transform: translateY(40px);
@@ -106,14 +106,12 @@
             transform: translateY(0);
         }
 
-        /* 漂浮动画（用于主页倒影和目录图标） */
         .float-slow { animation: float 6s ease-in-out infinite; }
         @keyframes float {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-10px); }
         }
 
-        /* 主页倒影专属遮罩 */
         .water-reflection {
             transform: scaleY(-1);
             opacity: 0.15;
@@ -121,11 +119,31 @@
             mask-image: linear-gradient(to bottom, transparent 20%, black 100%);
             -webkit-mask-image: linear-gradient(to bottom, transparent 20%, black 100%);
         }
+
+        /* 拖拽横向画廊样式 */
+        .drag-container {
+            overflow-x: auto;
+            white-space: nowrap;
+            cursor: grab;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .drag-container::-webkit-scrollbar { display: none; }
+        .drag-container.active { cursor: grabbing; }
+        
+        .gallery-item {
+            display: inline-block;
+            transition: transform 0.5s ease, filter 0.3s ease;
+            position: relative;
+        }
+        .gallery-item:hover {
+            transform: scale(1.02);
+            filter: brightness(1.05);
+        }
     </style>
 </head>
 <body class="antialiased selection:bg-ink-blue selection:text-white">
 
-    <!-- 严格对标视频：固定在右上方的侧边导航 -->
     <nav class="fixed right-8 top-1/3 -translate-y-1/3 z-50 flex flex-col gap-10 text-ink-blue text-[15px]">
         <div class="vertical-text ink-hover flex flex-col items-center gap-2 opacity-80 hover:opacity-100" onclick="navigateTo('home')">
             <span class="text-[10px] font-sans uppercase tracking-widest text-ink-light">Guide</span>
@@ -141,31 +159,25 @@
         </div>
     </nav>
 
-    <!-- ==================== 1. 首页 (Home) ==================== -->
+    <!-- ==================== 1. 首页 ==================== -->
     <section id="view-home" class="page-view active relative min-h-screen flex flex-col justify-center items-center">
-        
-        <!-- 顶部的题记 -->
         <div class="absolute top-16 text-center text-ink-blue opacity-80">
             <p class="tracking-[0.5em] text-sm mb-1">献给历史</p>
             <p class="font-sans text-[10px] uppercase tracking-widest text-ink-light">Dedicated to History</p>
         </div>
 
-        <!-- 中间的抽象人物水墨剪影与倒影 -->
         <div class="relative flex flex-col items-center mt-12 cursor-pointer" onclick="navigateTo('menu')">
-            <!-- 佩剑人物剪影 -->
+            <!-- 佩剑人物 SVG -->
             <svg class="w-24 h-40 text-ink-blue float-slow" viewBox="0 0 100 150" fill="currentColor">
                 <circle cx="50" cy="15" r="7" />
                 <path d="M47,22 C47,15 53,15 53,22 Z" />
                 <path d="M42,30 C32,45 25,85 20,130 L80,130 C75,85 68,45 58,30 Z" />
-                <!-- 剑 -->
                 <rect x="49" y="40" width="2" height="100" />
             </svg>
             
-            <!-- 水面线 -->
             <div class="w-48 h-[1px] bg-ink-blue opacity-40 mt-1 mb-1"></div>
             <div class="w-32 h-[1px] bg-ink-blue opacity-20 mb-2"></div>
             
-            <!-- 倒影 -->
             <svg class="w-24 h-40 text-ink-blue water-reflection" viewBox="0 0 100 150" fill="currentColor">
                 <circle cx="50" cy="15" r="7" />
                 <path d="M47,22 C47,15 53,15 53,22 Z" />
@@ -174,7 +186,6 @@
             </svg>
         </div>
 
-        <!-- 左侧竖排大标题 -->
         <div class="absolute left-[15%] top-1/2 -translate-y-1/2">
             <h1 class="vertical-text text-5xl md:text-6xl font-serif text-ink-dark leading-tight">冼夫人<br>足迹</h1>
             <div class="mt-12 opacity-80">
@@ -183,66 +194,99 @@
             </div>
         </div>
 
-        <!-- 右侧开始按钮 -->
         <div class="absolute right-[25%] top-1/2 -translate-y-1/2 text-center ink-hover opacity-80" onclick="navigateTo('menu')">
             <p class="vertical-text text-2xl font-serif text-ink-dark mb-4">开始阅读</p>
             <p class="font-sans text-[10px] text-ink-light uppercase tracking-widest vertical-text" style="letter-spacing: 0.1em;">Start Reading</p>
         </div>
     </section>
 
-    <!-- ==================== 2. 目录页 (Contents/Map) ==================== -->
-    <section id="view-menu" class="page-view relative min-h-screen pt-24 pb-20 px-8">
-        <div class="max-w-4xl mx-auto text-center mb-24">
-            <p class="text-[14px] text-ink-light leading-[2.5] mb-8 px-4 md:px-24 text-justify md:text-center">
-                公元六世纪的岭南，部族林立，山海交错。<br>
-                在这里，一位俚族少女以过人的胆识与智慧，跨越了梁、陈、隋三个朝代。<br>
-                她的一生，不仅是平息叛乱的征战史，更是推动汉俚融合、教化百越的安邦史。
+    <!-- ==================== 2. 目录页 (时空画廊) ==================== -->
+    <section id="view-menu" class="page-view relative min-h-screen pt-32 pb-20">
+        <div class="max-w-4xl mx-auto text-center mb-16 px-8">
+            <p class="text-[14px] text-ink-dark leading-[2.5] mb-4 text-justify md:text-center tracking-widest font-serif">
+                历史没有公历，也没有农历。<br>
+                它的记忆以那些决定苍生命运的重大抉择，以及无数次血与火的洗礼为坐标。
             </p>
-            <h2 class="text-2xl font-serif text-ink-dark mb-2 tracking-[0.2em]">请选择你想探索的历史坐标</h2>
-            <p class="font-sans text-[10px] text-ink-light uppercase tracking-[0.2em]">Please choose the coordinates of history</p>
-            <div class="mt-12 text-ink-light opacity-50">
-                <i class="fas fa-arrow-down animate-bounce"></i>
-            </div>
         </div>
 
-        <!-- 散落的手绘风图标 -->
-        <div class="max-w-5xl mx-auto relative h-[40vh]">
-            
-            <!-- 茂名/高凉 -->
-            <div class="absolute top-[10%] left-[15%] md:left-[20%] flex flex-col items-center cursor-pointer ink-hover float-slow" style="animation-delay: 0s;" onclick="startChapter('gaoliang')">
-                <i class="fas fa-mountain text-4xl text-ink-blue mb-3 opacity-80"></i>
-                <span class="text-sm font-serif text-ink-dark tracking-widest">高凉故里</span>
-                <span class="text-[10px] text-ink-light mt-1">公元522年</span>
-            </div>
+        <div class="drag-container w-full py-12" id="timeline-scroll">
+            <div class="inline-flex items-center gap-10 md:gap-16 px-[15vw] min-w-max h-[40vh]">
+                
+                <!-- 时空 1：高凉山林 -->
+                <div class="gallery-item w-48 h-48 md:w-56 md:h-56 self-center cursor-pointer svg-block text-ink-blue" data-id="1">
+                    <svg viewBox="0 0 200 200" fill="currentColor">
+                        <path opacity="0.25" d="M10,180 L60,90 L110,140 L160,70 L200,180 Z" />
+                        <path opacity="0.5" d="M0,190 L40,120 L90,170 L140,100 L190,190 Z" />
+                        <path d="M-10,200 L50,140 L80,180 L120,130 L180,200 Z" />
+                    </svg>
+                </div>
 
-            <!-- 广州 -->
-            <div class="absolute top-[40%] left-[50%] -translate-x-1/2 flex flex-col items-center cursor-pointer ink-hover float-slow" style="animation-delay: 1.5s;" onclick="startChapter('guangzhou')">
-                <i class="fas fa-torii-gate text-5xl text-ink-blue mb-3 opacity-80"></i>
-                <span class="text-sm font-serif text-ink-dark tracking-widest">番禺城郭</span>
-                <span class="text-[10px] text-ink-light mt-1">平息兵燹</span>
-            </div>
+                <!-- 时空 2：书简/融合 -->
+                <div class="gallery-item w-32 h-40 md:w-40 md:h-56 self-start -mt-8 md:-mt-16 cursor-pointer svg-block text-ink-blue" data-id="2">
+                    <svg viewBox="0 0 200 200" fill="currentColor">
+                        <path opacity="0.15" d="M30,30 h140 v140 h-140 z" />
+                        <rect x="40" y="40" width="20" height="120" rx="2" opacity="0.8" />
+                        <rect x="70" y="40" width="20" height="120" rx="2" opacity="0.9" />
+                        <rect x="100" y="40" width="20" height="120" rx="2" opacity="0.8" />
+                        <rect x="130" y="40" width="20" height="120" rx="2" opacity="0.9" />
+                        <path opacity="0.6" d="M30,80 h140 m0,40 h-140" stroke="currentColor" stroke-width="4" />
+                    </svg>
+                </div>
 
-            <!-- 崖州/海南 -->
-            <div class="absolute bottom-[10%] right-[15%] md:right-[25%] flex flex-col items-center cursor-pointer ink-hover float-slow" style="animation-delay: 0.8s;" onclick="startChapter('yazhou')">
-                <i class="fas fa-sailboat text-4xl text-ink-blue mb-3 opacity-80"></i>
-                <span class="text-sm font-serif text-ink-dark tracking-widest">崖州海疆</span>
-                <span class="text-[10px] text-ink-light mt-1">渡海安民</span>
-            </div>
+                <!-- 时空 3：兵燹城垣 -->
+                <div class="gallery-item w-64 h-48 md:w-80 md:h-64 self-end mt-12 cursor-pointer svg-block text-ink-blue" data-id="3">
+                    <svg viewBox="0 0 200 200" fill="currentColor">
+                        <path opacity="0.3" d="M20,180 v-80 h20 v-20 h30 v20 h30 v-20 h30 v20 h30 v-20 h20 v80 z" />
+                        <path opacity="0.8" d="M0,200 v-60 h20 v-20 h20 v20 h20 v-20 h20 v20 h20 v-20 h20 v20 h20 v-20 h20 v20 h20 v60 z" />
+                        <circle opacity="0.15" cx="150" cy="60" r="30" /> <!-- 圆月/硝烟 -->
+                        <path opacity="0.6" d="M40,160 l20,-40 l10,10 l-20,40 z" /> <!-- 断刃 -->
+                    </svg>
+                </div>
 
+                <!-- 时空 4：降旗归隋 -->
+                <div class="gallery-item w-40 h-48 md:w-48 md:h-64 self-center mb-12 cursor-pointer svg-block text-ink-blue" data-id="4">
+                    <svg viewBox="0 0 200 200" fill="currentColor">
+                        <rect x="50" y="20" width="8" height="160" opacity="0.9" />
+                        <!-- 半降的旗帜 -->
+                        <path opacity="0.8" d="M58,80 q40,-20 80,0 t40,0 v50 q-40,-20 -80,0 t-40,0 z" />
+                        <path opacity="0.2" d="M58,130 q40,-20 80,0 t40,0 v30 q-40,-20 -80,0 t-40,0 z" />
+                    </svg>
+                </div>
+
+                <!-- 时空 5：崖州渡海 -->
+                <div class="gallery-item w-56 h-56 md:w-72 md:h-64 self-start mt-8 cursor-pointer svg-block text-ink-blue" data-id="5">
+                    <svg viewBox="0 0 200 200" fill="currentColor">
+                        <path opacity="0.2" d="M0,150 q25,-15 50,0 t50,0 t50,0 t50,0 v50 h-200 z" />
+                        <path opacity="0.4" d="M0,170 q25,-15 50,0 t50,0 t50,0 t50,0 v30 h-200 z" />
+                        <path opacity="0.9" d="M30,140 l20,-30 h80 l20,30 z" />
+                        <path opacity="0.8" d="M90,100 v-70 q40,20 40,70 z" />
+                        <path opacity="0.6" d="M85,100 v-50 q-30,10 -30,50 z" />
+                    </svg>
+                </div>
+
+                <!-- 时空 6：千秋香火 -->
+                <div class="gallery-item w-32 h-40 md:w-40 md:h-56 self-end -mt-12 cursor-pointer svg-block text-ink-blue" data-id="6">
+                    <svg viewBox="0 0 200 200" fill="currentColor">
+                        <path opacity="0.15" d="M100,90 q-20,-30 0,-50 t0,-30" stroke="currentColor" stroke-width="15" fill="none" stroke-linecap="round"/>
+                        <path opacity="0.15" d="M80,90 q-20,-30 0,-50 t0,-30" stroke="currentColor" stroke-width="8" fill="none" stroke-linecap="round"/>
+                        <path opacity="0.9" d="M60,100 h80 v40 q0,20 -40,20 q-40,0 -40,-20 z" />
+                        <rect x="50" y="90" width="100" height="15" rx="5" opacity="0.9" />
+                        <path opacity="0.9" d="M75,160 l-10,30 h15 l5,-30 z M125,160 l10,30 h-15 l-5,-30 z" />
+                    </svg>
+                </div>
+
+                <div class="w-[10vw]"></div>
+            </div>
+            <div class="w-[300vw] h-[1px] bg-ink-light opacity-30 mt-8 ml-[10vw]"></div>
         </div>
 
-        <!-- 底部隐约的城市/山脉线 -->
-        <div class="fixed bottom-0 left-0 w-full opacity-5 pointer-events-none flex items-end justify-center overflow-hidden h-32">
-            <svg viewBox="0 0 1000 100" class="w-full h-full text-ink-blue" preserveAspectRatio="none" fill="currentColor">
-                <path d="M0,100 L0,80 Q50,50 100,70 T200,60 T300,80 T400,40 T500,70 T600,50 T700,80 T800,30 T900,60 T1000,80 L1000,100 Z" />
-            </svg>
+        <div class="text-center mt-12 text-ink-light opacity-50">
+            <p class="text-[10px] tracking-[0.2em] uppercase mb-2"><i class="fas fa-arrows-left-right mr-2"></i>左右拖拽探索时空</p>
         </div>
     </section>
 
-    <!-- ==================== 3. 叙事章节页 (Scrollytelling 长卷阅读) ==================== -->
+    <!-- ==================== 3. 叙事章节页 ==================== -->
     <section id="view-chapter" class="page-view bg-paper relative">
-        
-        <!-- 章节封面 -->
         <div class="min-h-screen flex flex-col items-center justify-center text-center relative z-10 px-6">
             <div class="mb-8 opacity-80 text-ink-blue text-5xl">
                 <i class="fas fa-landmark"></i>
@@ -255,10 +299,8 @@
             </div>
         </div>
 
-        <!-- 沉浸式图文排版 (图与文交错留白，增加内容厚度) -->
         <div class="max-w-4xl mx-auto px-6 pb-32">
             
-            <!-- 【一】 少女与联姻 -->
             <div class="min-h-[50vh] flex items-center justify-center fade-up observer-item">
                 <div class="text-center max-w-lg">
                     <p class="text-[12px] text-ink-light font-sans mb-6 tracking-[0.2em] border-b border-ink-light/20 pb-2 inline-block">一 · 汉俚融合</p>
@@ -269,11 +311,13 @@
                 </div>
             </div>
 
-            <!-- 图片：山林/部落意象 -->
-            <div class="my-24 fade-up observer-item w-full md:w-3/4 mx-auto">
-                <img src="https://images.unsplash.com/photo-1542052125323-e69ad37a47c2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" 
-                     class="watercolor-img rough-edge shadow-sm" alt="古代城郭意象">
-                <p class="text-right text-[10px] text-ink-light mt-2 italic">古高凉风貌意象</p>
+            <!-- SVG 插入 1 -->
+            <div class="my-24 fade-up observer-item w-full md:w-3/4 mx-auto h-64 svg-block text-ink-blue">
+                <svg viewBox="0 0 200 200" fill="currentColor">
+                    <path opacity="0.2" d="M10,180 L60,90 L110,140 L160,70 L200,180 Z" />
+                    <path opacity="0.4" d="M0,190 L40,120 L90,170 L140,100 L190,190 Z" />
+                    <path opacity="0.8" d="M-10,200 L50,140 L80,180 L120,130 L180,200 Z" />
+                </svg>
             </div>
 
             <div class="min-h-[40vh] flex items-center justify-start fade-up observer-item">
@@ -285,7 +329,6 @@
                 </div>
             </div>
 
-            <!-- 【二】 识破叛乱 -->
             <div class="my-40 flex flex-col md:flex-row items-center gap-16 fade-up observer-item">
                 <div class="w-full md:w-1/2">
                     <p class="text-[12px] text-ink-light font-sans mb-6 tracking-[0.2em] border-b border-ink-light/20 pb-2 inline-block">二 · 勘平兵燹</p>
@@ -295,14 +338,16 @@
                         冼夫人敏锐地识破了阴谋，阻止丈夫前往。她甚至亲自挑着干柴挑子，假装送礼劳军，趁乱突袭，一举击溃了叛军，解救了水深火热的广州城。
                     </p>
                 </div>
-                <div class="w-full md:w-1/2">
-                    <!-- 战火/军队意象 -->
-                    <img src="https://images.unsplash.com/photo-1599839619722-39751411ea63?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
-                         class="watercolor-img rough-edge" alt="古代兵燹意象">
+                <div class="w-full md:w-1/2 h-64 svg-block text-ink-blue">
+                    <!-- SVG 插入 2 -->
+                    <svg viewBox="0 0 200 200" fill="currentColor">
+                        <path opacity="0.2" d="M20,180 v-80 h20 v-20 h30 v20 h30 v-20 h30 v20 h30 v-20 h20 v80 z" />
+                        <path opacity="0.7" d="M0,200 v-60 h20 v-20 h20 v20 h20 v-20 h20 v20 h20 v-20 h20 v20 h20 v-20 h20 v20 h20 v60 z" />
+                        <path opacity="0.9" d="M80,180 l-10,-50 l5,-5 l15,50 z" /> <!-- 兵器意象 -->
+                    </svg>
                 </div>
             </div>
 
-            <!-- 【三】 舍子保境 -->
             <div class="min-h-[50vh] flex flex-col items-center justify-center text-center fade-up observer-item">
                 <p class="text-[12px] text-ink-light font-sans mb-6 tracking-[0.2em] border-b border-ink-light/20 pb-2 inline-block">三 · 大义灭亲</p>
                 <p class="text-xl font-serif text-ink-dark leading-[2.5] mb-8 max-w-lg text-justify">
@@ -315,7 +360,6 @@
                 </p>
             </div>
 
-            <!-- 【四】 归顺隋朝 -->
             <div class="my-40 flex flex-col md:flex-row-reverse items-center gap-16 fade-up observer-item">
                 <div class="w-full md:w-1/2 pl-0 md:pl-8">
                     <p class="text-[12px] text-ink-light font-sans mb-6 tracking-[0.2em] border-b border-ink-light/20 pb-2 inline-block">四 · 痛哭降旗</p>
@@ -324,28 +368,33 @@
                         面对割据称王的诱惑，当隋朝使臣带来陈后主的信物时，她痛哭流涕，祭奠故主后，毅然降下陈旗。岭南全境兵不血刃，悄然融入大隋版图。
                     </p>
                 </div>
-                <div class="w-full md:w-1/2">
-                    <!-- 旗帜/古建筑意象 -->
-                    <img src="https://images.unsplash.com/photo-1549884501-c88c7f758db2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
-                         class="watercolor-img rough-edge" alt="城头意象">
+                <div class="w-full md:w-1/2 h-64 svg-block text-ink-blue">
+                    <!-- SVG 插入 3 -->
+                    <svg viewBox="0 0 200 200" fill="currentColor">
+                        <rect x="50" y="20" width="8" height="160" opacity="0.8" />
+                        <path opacity="0.9" d="M58,80 q40,-20 80,0 t40,0 v50 q-40,-20 -80,0 t-40,0 z" />
+                    </svg>
                 </div>
             </div>
 
-            <!-- 【五】 巡抚崖州 -->
-            <div class="my-32 fade-up observer-item w-full mx-auto">
-                <img src="https://images.unsplash.com/photo-1558237583-0972b21cfbc3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80" 
-                     class="watercolor-img rough-edge shadow-sm" alt="大海与帆船意象">
-                <div class="mt-12 max-w-2xl mx-auto text-center">
-                    <p class="text-[12px] text-ink-light font-sans mb-6 tracking-[0.2em] border-b border-ink-light/20 pb-2 inline-block">五 · 渡海安民</p>
+            <div class="my-32 fade-up observer-item w-full mx-auto h-72 svg-block text-ink-blue">
+                <!-- SVG 插入 4 -->
+                <svg viewBox="0 0 200 200" fill="currentColor">
+                    <path opacity="0.15" d="M0,150 q25,-15 50,0 t50,0 t50,0 t50,0 v50 h-200 z" />
+                    <path opacity="0.3" d="M0,170 q25,-15 50,0 t50,0 t50,0 t50,0 v30 h-200 z" />
+                    <path opacity="0.8" d="M30,140 l20,-30 h80 l20,30 z" />
+                    <path opacity="0.9" d="M90,100 v-70 q40,20 40,70 z" />
+                    <path opacity="0.5" d="M85,100 v-50 q-30,10 -30,50 z" />
+                </svg>
+                <div class="absolute -bottom-24 w-full left-0 max-w-2xl mx-auto text-center px-6">
+                    <p class="text-[12px] text-ink-light font-sans mb-6 tracking-[0.2em] border-b border-ink-light/20 pb-2 inline-block mt-8">五 · 渡海安民</p>
                     <p class="text-[17px] leading-[2.2] text-ink-dark text-justify">
-                        晚年的冼夫人，目光越过了琼州海峡。<br>
                         自汉代以来，海南岛曾脱离中央管辖长达六百余年。她上书朝廷请置崖州，恢复了王朝对海岛的直接统辖。她乘船渡海，巡视各峒，惩治贪墨，传授技艺，将文明的种子播撒在海岛深处。
                     </p>
                 </div>
             </div>
 
-            <!-- 结语 (居中强调) -->
-            <div class="min-h-[50vh] flex flex-col items-center justify-center text-center fade-up observer-item mt-24">
+            <div class="min-h-[50vh] flex flex-col items-center justify-center text-center fade-up observer-item mt-56">
                 <p class="text-3xl font-serif text-ink-dark leading-[2.5] mb-8">
                     “我事三代主，唯用一好心。”
                 </p>
@@ -355,7 +404,6 @@
                 </p>
             </div>
 
-            <!-- 底部结束导向 -->
             <div class="pt-24 border-t border-ink-light/20 text-center fade-up observer-item">
                 <button class="text-ink-dark text-[15px] font-serif tracking-widest ink-hover" onclick="navigateTo('more')">
                     浏览她留给后世的千秋传承 <i class="fas fa-arrow-right ml-2 text-xs opacity-70"></i>
@@ -365,18 +413,12 @@
         </div>
     </section>
 
-    <!-- ==================== 4. 更多与留言 (More) ==================== -->
+    <!-- ==================== 4. 更多与留言 ==================== -->
     <section id="view-more" class="page-view bg-paper pt-24 pb-32 relative">
         <div class="max-w-4xl mx-auto px-8 text-center">
-            
-            <h2 class="text-2xl font-serif text-ink-dark mb-24 tracking-[0.3em]">
-                千古流芳……
-            </h2>
+            <h2 class="text-2xl font-serif text-ink-dark mb-24 tracking-[0.3em]">千古流芳……</h2>
 
-            <!-- 视频风数据可视化排版 (扩充数据维度) -->
             <div class="space-y-24 mb-32 text-left">
-                
-                <!-- 数据块 1：三朝 -->
                 <div class="flex flex-col md:flex-row items-start gap-12 fade-up observer-item">
                     <div class="w-full md:w-1/3 text-center md:text-right">
                         <h3 class="text-[12px] text-ink-light uppercase tracking-[0.2em] mb-2">她的时代</h3>
@@ -389,7 +431,6 @@
                     </div>
                 </div>
                 
-                <!-- 数据块 2：崖州 -->
                 <div class="flex flex-col md:flex-row items-start gap-12 fade-up observer-item">
                     <div class="w-full md:w-1/3 text-center md:text-right">
                         <h3 class="text-[12px] text-ink-light uppercase tracking-[0.2em] mb-2">她的海疆</h3>
@@ -402,7 +443,6 @@
                     </div>
                 </div>
 
-                <!-- 数据块 3：信仰 -->
                 <div class="flex flex-col md:flex-row items-start gap-12 fade-up observer-item">
                     <div class="w-full md:w-1/3 text-center md:text-right">
                         <h3 class="text-[12px] text-ink-light uppercase tracking-[0.2em] mb-2">她的身后</h3>
@@ -414,10 +454,8 @@
                         </p>
                     </div>
                 </div>
-
             </div>
 
-            <!-- 视频尾声：留言交互区 -->
             <div class="mt-32 pt-24 border-t border-ink-light/20 fade-up observer-item">
                 <h2 class="text-xl font-serif text-ink-dark mb-6 tracking-widest">留下你的历史感悟</h2>
                 <p class="text-ink-light mb-12 text-[13px] leading-[2] tracking-wide">
@@ -436,36 +474,31 @@
                         </div>
                     </div>
 
-                    <!-- 提交成功提示 -->
                     <div id="success-message" class="hidden flex-col items-center justify-center py-4">
                         <p class="text-lg font-serif text-ink-dark mb-2 tracking-widest">已记录</p>
                         <p class="text-[12px] text-ink-light tracking-widest">你的感悟已汇入历史长卷</p>
                     </div>
                 </div>
 
-                <!-- 模拟视频中散落的弹幕/历史留言 -->
                 <div class="mt-32 space-y-16 opacity-60 pointer-events-none text-center relative h-48">
                     <p class="absolute top-0 left-0 text-[14px] text-ink-dark font-serif italic text-justify w-64">“为了家国太平，甘愿一生征战，这就是真正的英雄。”</p>
                     <p class="absolute top-12 right-0 text-[14px] text-ink-dark font-serif italic text-justify w-56">“现在去海南，还能看到祭祀她的古老庙宇。”</p>
                     <p class="absolute bottom-0 left-1/4 text-[14px] text-ink-dark font-serif italic text-justify w-64">“‘唯用一好心’，短短五个字，却是最高深的政治智慧。”</p>
                 </div>
             </div>
-
         </div>
     </section>
 
     <script>
-        // --- 路由与视图切换逻辑 ---
         function navigateTo(viewId) {
             document.querySelectorAll('.page-view').forEach(el => {
                 el.classList.remove('active');
             });
-            window.scrollTo(0, 0); // 切换时置顶
+            window.scrollTo(0, 0);
             const target = document.getElementById('view-' + viewId);
             if (target) {
                 target.classList.add('active');
             }
-            // 重新触发滚动动画检测
             setTimeout(checkVisibility, 100);
         }
 
@@ -473,24 +506,67 @@
             navigateTo('chapter');
         }
 
-        // --- 简单的滚动淡入监听 (还原视频中的平滑出现) ---
+        function initDragScroll() {
+            const slider = document.getElementById('timeline-scroll');
+            if (!slider) return;
+            
+            let isDown = false;
+            let startX;
+            let scrollLeft;
+            let dragged = false; 
+
+            slider.addEventListener('mousedown', (e) => {
+                isDown = true;
+                dragged = false;
+                slider.classList.add('active');
+                startX = e.pageX - slider.offsetLeft;
+                scrollLeft = slider.scrollLeft;
+            });
+            
+            slider.addEventListener('mouseleave', () => {
+                isDown = false;
+                slider.classList.remove('active');
+            });
+            
+            slider.addEventListener('mouseup', () => {
+                isDown = false;
+                slider.classList.remove('active');
+            });
+            
+            slider.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                e.preventDefault();
+                const x = e.pageX - slider.offsetLeft;
+                const walk = (x - startX) * 2; 
+                if (Math.abs(walk) > 5) { dragged = true; }
+                slider.scrollLeft = scrollLeft - walk;
+            });
+
+            document.querySelectorAll('.gallery-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    if (dragged) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return; 
+                    }
+                    startChapter('chapter'); 
+                });
+            });
+        }
+
         function checkVisibility() {
             const elements = document.querySelectorAll('.observer-item');
             elements.forEach(el => {
                 const rect = el.getBoundingClientRect();
-                // 当元素进入视口底部之上 100px 时触发
                 if (rect.top < window.innerHeight - 50) {
                     el.classList.add('visible');
                 }
             });
         }
 
-        // 监听滚动事件
         window.addEventListener('scroll', checkVisibility);
-        // 初始化检测
         window.addEventListener('load', checkVisibility);
 
-        // --- 简单的交互逻辑 ---
         function submitStory() {
             const input = document.getElementById('storyInput');
             if (input.value.trim() === '') {
@@ -502,7 +578,6 @@
             document.getElementById('success-message').classList.remove('hidden');
             document.getElementById('success-message').classList.add('flex');
             
-            // 模拟 3 秒后重置
             setTimeout(() => {
                 document.getElementById('success-message').classList.add('hidden');
                 document.getElementById('success-message').classList.remove('flex');
@@ -511,9 +586,9 @@
             }, 3000);
         }
 
-        // 默认进入首页
         window.onload = () => {
             navigateTo('home');
+            initDragScroll(); 
         };
     </script>
 </body>
